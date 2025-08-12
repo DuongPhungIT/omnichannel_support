@@ -37,7 +37,7 @@ export default function PersonalScreen() {
     <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
       {/* Header gradient */}
       <LinearGradient
-        colors={[theme.colors.primary, '#6A4CFF']}
+        colors={[theme.colors.primary, '#1ebe71']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{ height: HEADER_HEIGHT, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 }}
