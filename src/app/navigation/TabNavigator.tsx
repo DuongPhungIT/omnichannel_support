@@ -2,11 +2,13 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import ChatListScreen from '@/screens/ChatListScreen';
 import PersonalScreen from '@/screens/PersonalScreen';
+import CallsScreen from '@/screens/CallsScreen';
 import ManageScreen from '@/screens/ManageScreen';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export type TabParamList = {
   Chat: undefined;
+  Calls: undefined;
   Manage: undefined;
   Personal: undefined;
 };
@@ -31,6 +33,17 @@ export default function TabNavigator() {
           ),
           title: 'Tin nhắn',
           tabBarLabel: 'Chat',
+        }}
+      />
+      <Tab.Screen
+        name="Calls"
+        component={CallsScreen}
+        options={{
+          tabBarIcon: ({ size, color }) => (
+            <MaterialCommunityIcons name="phone-outline" size={size} color={color} />
+          ),
+          tabBarLabel: 'Cuộc gọi',
+          title: 'Cuộc gọi',
         }}
       />
       <Tab.Screen

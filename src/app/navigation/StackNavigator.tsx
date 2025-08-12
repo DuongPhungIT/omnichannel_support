@@ -37,6 +37,7 @@ export default function StackNavigator() {
               const focused = getFocusedRouteNameFromRoute(route) ?? 'Chat';
               const suffixMap: Record<string, string> = {
                 Chat: 'Chat',
+                Calls: 'Cuộc gọi',
                 Manage: 'Quản lý',
                 Personal: 'Cá nhân',
               };
