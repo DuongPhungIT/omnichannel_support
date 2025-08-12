@@ -1,6 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import HomeScreen from '@/screens/HomeScreen';
+import ChatListScreen from '@/screens/ChatListScreen';
 import PersonalScreen from '@/screens/PersonalScreen';
 import ManageScreen from '@/screens/ManageScreen';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -24,7 +24,7 @@ export default function TabNavigator() {
     >
       <Tab.Screen
         name="Chat"
-        component={HomeScreen}
+        component={ChatListScreen}
         options={{
           tabBarIcon: ({ size, color }) => (
             <MaterialCommunityIcons name="chat-processing-outline" size={size} color={color} />

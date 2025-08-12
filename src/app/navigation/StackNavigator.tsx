@@ -4,12 +4,14 @@ import TabNavigator from './TabNavigator';
 import LoginScreen from '@/screens/LoginScreen';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/app/store';
-import { Button } from 'react-native-paper';
-import { View } from 'react-native';
+import ChatDetailScreen from '@/screens/ChatDetailScreen';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
+import { View, Text } from 'react-native';
 
 export type RootStackParamList = {
   Login: undefined;
   MainTabs: undefined;
+  ChatDetail: { chatId: string; contactName: string };
   // Có thể thêm màn khác: Details: { id: string };
 };
 
@@ -26,20 +28,47 @@ export default function StackNavigator() {
           options={{ title: 'Đăng nhập', headerShown: false }}
         />
       ) : (
-        <Stack.Screen
-          name="MainTabs"
-          component={TabNavigator}
-          options={{
-            title: 'Kido CRM Center',
-            headerRight: () => (
-              <View style={{ marginRight: 8 }}>
-                <Button mode="contained-tonal" compact onPress={() => {}}>
-                  Help
-                </Button>
-              </View>
-            ),
-          }}
-        />
+        <>
+          <Stack.Screen
+            name="MainTabs"
+            component={TabNavigator}
+            options={({ route }) => {
+              const base = 'Kido CRM Center';
+              const focused = getFocusedRouteNameFromRoute(route) ?? 'Chat';
+              const suffixMap: Record<string, string> = {
+                Chat: 'Chat',
+                Manage: 'Quản lý',
+                Personal: 'Cá nhân',
+              };
+              const title = `${base} - ${suffixMap[focused] ?? focused}`;
+              const Header = () => (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: 8,
+                      backgroundColor: '#1EBE71',
+                      borderWidth: 2,
+                      borderColor: '#99BE31',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: 8,
+                    }}
+                  >
+                    <Text style={{ color: '#FFFFFF', fontWeight: '900' }}>K</Text>
+                  </View>
+                  <Text style={{ fontWeight: '600', color: '#173558' }}>{title}</Text>
+                </View>
+              );
+              return {
+                headerTitle: () => <Header />,
+                headerTitleAlign: 'center' as const,
+              };
+            }}
+          />
+          <Stack.Screen name="ChatDetail" component={ChatDetailScreen} options={{ title: 'Chi tiết chat' }} />
+        </>
       )}
     </Stack.Navigator>
   );
