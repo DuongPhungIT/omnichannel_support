@@ -100,7 +100,7 @@ export default function ChatListItem({
           <ActionButton icon="eye-off-outline" label="Unread" bg="#10B981" onPress={onMarkUnread} />
         </Animated.View>
         <Animated.View style={{ height: '100%', transform: [{ translateX: translate(ACTION_WIDTH) }], opacity: Opacity }}>
-          <ActionButton icon="pin-outline" label="Pin" bg="#059669" onPress={onPin} />
+          <ActionButton icon={pinned ? 'pin-off-outline' : 'pin-outline'} label={pinned ? 'Unpin' : 'Pin'} bg="#059669" onPress={onPin} />
         </Animated.View>
         <Animated.View style={{ height: '100%', transform: [{ translateX: translate(0) }], opacity: Opacity }}>
           <ActionButton icon="dots-horizontal" label="More" bg="#047857" onPress={onMore} />
@@ -160,8 +160,8 @@ export default function ChatListItem({
             </View>
           )}
           {pinned ? (
-            <View style={{ position: 'absolute', right: -4, top: -4, backgroundColor: '#059669', borderRadius: 10, paddingHorizontal: 4, paddingVertical: 2 }}>
-              <MaterialCommunityIcons name="pin" size={14} color="#FFFFFF" />
+            <View style={{ position: 'absolute', right: -4, top: -4, backgroundColor: '#059669', borderRadius: 10, width: 20, height: 20, alignItems: 'center', justifyContent: 'center' }}>
+              <MaterialCommunityIcons name="pin" size={12} color="#FFFFFF" style={{ transform: [{ rotate: '45deg' }] }} />
             </View>
           ) : null}
         </View>

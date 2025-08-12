@@ -10,6 +10,7 @@ export interface Conversation {
   lastPreview?: string;
   lastTimestamp?: string;
   pinned?: boolean;
+  pinnedAt?: number;
 }
 
 export interface ConversationsState {
@@ -55,10 +56,17 @@ export const fetchConversationsThunk = createAsyncThunk(
         return text || '[Tin nhắn]';
       };
 
-      // restore pinned ids from storage to avoid losing when refresh
+      // restore pinned map (id -> pinnedAt) to avoid losing when refresh
       const persisted = await AsyncStorage.getItem('pinned_conversation_ids');
-      const pinnedIds: string[] = persisted ? JSON.parse(persisted) : [];
-      const pinnedSet = new Set(pinnedIds);
+      const pinnedMap = new Map<string, number>();
+      if (persisted) {
+        const parsed = JSON.parse(persisted);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((id: string, idx: number) => pinnedMap.set(String(id), Date.now() - idx));
+        } else if (parsed && typeof parsed === 'object') {
+          Object.entries(parsed).forEach(([id, ts]) => pinnedMap.set(String(id), Number(ts)));
+        }
+      }
 
       const items: Conversation[] = rows.map((c: any, idx: number) => ({
         id: String(c.id || c.conversationId || c._id || `conv-${Date.now()}-${idx}`),
@@ -66,7 +74,8 @@ export const fetchConversationsThunk = createAsyncThunk(
         avatarUrl: c.customerAvatar || c.avatarUrl || c.userAvatar,
         lastPreview: c.lastMessage ? mapPreview(c.lastMessage) : mapPreview(c),
         lastTimestamp: (c.lastMessage?.timestamp || c.timestamp) ? new Date(c.lastMessage?.timestamp || c.timestamp).toISOString() : undefined,
-        pinned: pinnedSet.has(String(c.id || c.conversationId || c._id || `conv-${Date.now()}-${idx}`)),
+        pinned: pinnedMap.has(String(c.id || c.conversationId || c._id || `conv-${Date.now()}-${idx}`)),
+        pinnedAt: pinnedMap.get(String(c.id || c.conversationId || c._id || `conv-${Date.now()}-${idx}`)),
       }));
 
       return { items, received: items.length, reset: !!arg?.reset };
@@ -91,16 +100,23 @@ const conversationsSlice = createSlice({
       const target = state.items.find((i) => i.id === id);
       if (target) {
         target.pinned = !target.pinned;
-        // Reorder: pinned first, then by lastTimestamp desc
+        target.pinnedAt = target.pinned ? Date.now() : undefined;
+        // Reorder: pinned first, then by pinnedAt desc, then by lastTimestamp
         state.items = [...state.items].sort((a, b) => {
           if (!!b.pinned !== !!a.pinned) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+          if (a.pinned && b.pinned) {
+            const pa = a.pinnedAt ?? 0;
+            const pb = b.pinnedAt ?? 0;
+            if (pb !== pa) return pb - pa;
+          }
           const ta = a.lastTimestamp ? Date.parse(a.lastTimestamp) : 0;
           const tb = b.lastTimestamp ? Date.parse(b.lastTimestamp) : 0;
           return tb - ta;
         });
-        // persist
-        const pinIds = state.items.filter(i => i.pinned).map(i => i.id);
-        AsyncStorage.setItem('pinned_conversation_ids', JSON.stringify(pinIds)).catch(() => {});
+        // persist map
+        const pinMap: Record<string, number> = {};
+        state.items.forEach((i) => { if (i.pinned && i.pinnedAt) pinMap[i.id] = i.pinnedAt; });
+        AsyncStorage.setItem('pinned_conversation_ids', JSON.stringify(pinMap)).catch(() => {});
       }
     },
   },
@@ -115,7 +131,31 @@ const conversationsSlice = createSlice({
         const { items, received, reset } = action.payload as { items: Conversation[]; received: number; reset: boolean };
         state.loading = false;
         state.refreshing = false;
-        state.items = reset ? items : [...state.items, ...items];
+        // Merge pages and de-duplicate by id while preserving pinned flag
+        const merged = reset ? items : [...state.items, ...items];
+        const map = new Map<string, Conversation>();
+        for (const it of merged) {
+          const existing = map.get(it.id);
+          if (existing) {
+            map.set(it.id, { ...existing, ...it, pinned: existing.pinned || it.pinned });
+          } else {
+            map.set(it.id, it);
+          }
+        }
+        const next = Array.from(map.values());
+        // Always keep pinned on top, then by pinnedAt desc (newest pin on top), fallback lastTimestamp desc
+        next.sort((a, b) => {
+          if (!!b.pinned !== !!a.pinned) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+          if (a.pinned && b.pinned) {
+            const pa = a.pinnedAt ?? 0;
+            const pb = b.pinnedAt ?? 0;
+            if (pb !== pa) return pb - pa;
+          }
+          const ta = a.lastTimestamp ? Date.parse(a.lastTimestamp) : 0;
+          const tb = b.lastTimestamp ? Date.parse(b.lastTimestamp) : 0;
+          return tb - ta;
+        });
+        state.items = next;
         state.offset = reset ? received : state.offset + received;
         state.hasMore = received >= PAGE_SIZE;
       })
