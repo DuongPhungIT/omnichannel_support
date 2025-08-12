@@ -1,6 +1,8 @@
 import React from "react";
-import { Image, TouchableOpacity, View } from "react-native";
+import { Image, TouchableOpacity, View, Animated } from "react-native";
 import { Text, Badge, useTheme } from "react-native-paper";
+import { Swipeable, RectButton } from 'react-native-gesture-handler';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export interface ChatListItemProps {
   contactName: string;
@@ -10,6 +12,10 @@ export interface ChatListItemProps {
   avatarUrl?: string;
   onPress?: () => void;
   highlightQuery?: string | null;
+  onMarkUnread?: () => void;
+  onPin?: () => void;
+  onMore?: () => void;
+  pinned?: boolean;
 }
 
 export default function ChatListItem({
@@ -20,6 +26,10 @@ export default function ChatListItem({
   avatarUrl,
   onPress,
   highlightQuery,
+  onMarkUnread,
+  onPin,
+  onMore,
+  pinned,
 }: ChatListItemProps) {
   const theme = useTheme();
 
@@ -72,12 +82,45 @@ export default function ChatListItem({
     );
   };
 
+  const ACTION_WIDTH = 88;
+
+  const ActionButton = ({ icon, label, bg, onPress: onActionPress }: { icon: any; label: string; bg: string; onPress?: () => void }) => (
+    <RectButton onPress={onActionPress} style={{ width: ACTION_WIDTH, height: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: bg }}>
+      <MaterialCommunityIcons name={icon} size={22} color={'#FFFFFF'} />
+      <Text style={{ color: '#FFFFFF', marginTop: 4, fontSize: 12, fontWeight: '600' }}>{label}</Text>
+    </RectButton>
+  );
+
+  const renderRightActions = (progress: Animated.AnimatedInterpolation<number>) => {
+    const translate = (offset: number) => progress.interpolate({ inputRange: [0, 1], outputRange: [offset, 0] });
+    const Opacity = progress; // simple fade-in
+    return (
+      <View style={{ flexDirection: 'row', height: '100%' }}>
+        <Animated.View style={{ height: '100%', transform: [{ translateX: translate(ACTION_WIDTH * 2) }], opacity: Opacity }}>
+          <ActionButton icon="eye-off-outline" label="Unread" bg="#10B981" onPress={onMarkUnread} />
+        </Animated.View>
+        <Animated.View style={{ height: '100%', transform: [{ translateX: translate(ACTION_WIDTH) }], opacity: Opacity }}>
+          <ActionButton icon="pin-outline" label="Pin" bg="#059669" onPress={onPin} />
+        </Animated.View>
+        <Animated.View style={{ height: '100%', transform: [{ translateX: translate(0) }], opacity: Opacity }}>
+          <ActionButton icon="dots-horizontal" label="More" bg="#047857" onPress={onMore} />
+        </Animated.View>
+      </View>
+    );
+  };
+
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.8}
-      style={{ paddingHorizontal: 12 }}
+    <Swipeable
+      renderRightActions={(progress /*, dragX*/) => renderRightActions(progress as any)}
+      overshootRight={false}
+      rightThreshold={32}
+      friction={2}
     >
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.8}
+        style={{ paddingHorizontal: 12 }}
+      >
       <View
         style={{
           flexDirection: "row",
@@ -87,34 +130,41 @@ export default function ChatListItem({
           borderBottomColor: "#EEF2FF",
         }}
       >
-        {avatarUrl ? (
-          <Image
-            source={{ uri: avatarUrl }}
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 24,
-              backgroundColor: "#E5E7EB",
-            }}
-          />
-        ) : (
-          <View
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 24,
-              backgroundColor: "#D9FDD3",
-              alignItems: "center",
-              justifyContent: "center",
-              borderWidth: 1,
-              borderColor: "#A7F3D0",
-            }}
-          >
-            <Text style={{ color: "#173558", fontWeight: "800" }}>
-              {contactName.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
+        <View>
+          {avatarUrl ? (
+            <Image
+              source={{ uri: avatarUrl }}
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: "#E5E7EB",
+              }}
+            />
+          ) : (
+            <View
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: "#D9FDD3",
+                alignItems: "center",
+                justifyContent: "center",
+                borderWidth: 1,
+                borderColor: "#A7F3D0",
+              }}
+            >
+              <Text style={{ color: "#173558", fontWeight: "800" }}>
+                {contactName.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+          {pinned ? (
+            <View style={{ position: 'absolute', right: -4, top: -4, backgroundColor: '#059669', borderRadius: 10, paddingHorizontal: 4, paddingVertical: 2 }}>
+              <MaterialCommunityIcons name="pin" size={14} color="#FFFFFF" />
+            </View>
+          ) : null}
+        </View>
         <View style={{ flex: 1, marginLeft: 12, paddingBottom: 10 }}>
           <View
             style={{
@@ -146,6 +196,7 @@ export default function ChatListItem({
           </View>
         </View>
       </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Swipeable>
   );
 }

@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { fetchConversations as apiFetchConversations } from '@/api/conversations';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface Conversation {
   id: string;
@@ -8,6 +9,7 @@ export interface Conversation {
   avatarUrl?: string;
   lastPreview?: string;
   lastTimestamp?: string;
+  pinned?: boolean;
 }
 
 export interface ConversationsState {
@@ -53,12 +55,18 @@ export const fetchConversationsThunk = createAsyncThunk(
         return text || '[Tin nhắn]';
       };
 
+      // restore pinned ids from storage to avoid losing when refresh
+      const persisted = await AsyncStorage.getItem('pinned_conversation_ids');
+      const pinnedIds: string[] = persisted ? JSON.parse(persisted) : [];
+      const pinnedSet = new Set(pinnedIds);
+
       const items: Conversation[] = rows.map((c: any, idx: number) => ({
         id: String(c.id || c.conversationId || c._id || `conv-${Date.now()}-${idx}`),
         title: c.customerName || c.title || c.name || c.userName || 'Khách hàng',
         avatarUrl: c.customerAvatar || c.avatarUrl || c.userAvatar,
         lastPreview: c.lastMessage ? mapPreview(c.lastMessage) : mapPreview(c),
         lastTimestamp: (c.lastMessage?.timestamp || c.timestamp) ? new Date(c.lastMessage?.timestamp || c.timestamp).toISOString() : undefined,
+        pinned: pinnedSet.has(String(c.id || c.conversationId || c._id || `conv-${Date.now()}-${idx}`)),
       }));
 
       return { items, received: items.length, reset: !!arg?.reset };
@@ -77,6 +85,23 @@ const conversationsSlice = createSlice({
       state.offset = 0;
       state.hasMore = true;
       state.errorMessage = null;
+    },
+    togglePin(state, action: PayloadAction<string>) {
+      const id = action.payload;
+      const target = state.items.find((i) => i.id === id);
+      if (target) {
+        target.pinned = !target.pinned;
+        // Reorder: pinned first, then by lastTimestamp desc
+        state.items = [...state.items].sort((a, b) => {
+          if (!!b.pinned !== !!a.pinned) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+          const ta = a.lastTimestamp ? Date.parse(a.lastTimestamp) : 0;
+          const tb = b.lastTimestamp ? Date.parse(b.lastTimestamp) : 0;
+          return tb - ta;
+        });
+        // persist
+        const pinIds = state.items.filter(i => i.pinned).map(i => i.id);
+        AsyncStorage.setItem('pinned_conversation_ids', JSON.stringify(pinIds)).catch(() => {});
+      }
     },
   },
   extraReducers(builder) {
@@ -102,7 +127,7 @@ const conversationsSlice = createSlice({
   },
 });
 
-export const { clearConversations } = conversationsSlice.actions;
+export const { clearConversations, togglePin } = conversationsSlice.actions;
 export default conversationsSlice.reducer;
 
 

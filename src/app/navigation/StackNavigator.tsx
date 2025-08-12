@@ -43,21 +43,6 @@ export default function StackNavigator() {
               const title = `${base} - ${suffixMap[focused] ?? focused}`;
               const Header = () => (
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <View
-                    style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: 8,
-                      backgroundColor: '#1EBE71',
-                      borderWidth: 2,
-                      borderColor: '#99BE31',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginRight: 8,
-                    }}
-                  >
-                    <Text style={{ color: '#FFFFFF', fontWeight: '900' }}>K</Text>
-                  </View>
                   <Text style={{ fontWeight: '600', color: '#173558' }}>{title}</Text>
                 </View>
               );

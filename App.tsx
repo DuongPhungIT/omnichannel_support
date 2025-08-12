@@ -6,6 +6,7 @@ import { store } from '@/app/store';
 import { NavigationContainer, DefaultTheme as NavDefaultTheme } from '@react-navigation/native';
 import StackNavigator from '@/app/navigation/StackNavigator';
 import { MD3LightTheme as PaperDefaultTheme, Provider as PaperProvider } from 'react-native-paper';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import BrandSplash from '@/screens/BrandSplash';
 
 // 🧩 Trộn theme của Navigation + Paper cho đồng bộ màu sắc
@@ -45,11 +46,13 @@ export default function App() {
 
   return (
     <ReduxProvider store={store}>
-      <PaperProvider theme={CombinedTheme}>
-        <NavigationContainer theme={CombinedTheme}>
-          <StackNavigator />
-        </NavigationContainer>
-      </PaperProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <PaperProvider theme={CombinedTheme}>
+          <NavigationContainer theme={CombinedTheme}>
+            <StackNavigator />
+          </NavigationContainer>
+        </PaperProvider>
+      </GestureHandlerRootView>
     </ReduxProvider>
   );
 }

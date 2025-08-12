@@ -1,13 +1,15 @@
 import React from 'react';
 import { FlatList, View, RefreshControl } from 'react-native';
-import { Searchbar, Text, ActivityIndicator, useTheme } from 'react-native-paper';
+import { Searchbar, Text, ActivityIndicator, useTheme, TextInput } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LayoutAnimation, Platform, UIManager } from 'react-native';
 import ChatListItem from '@/components/ChatListItem';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/app/navigation/StackNavigator';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '@/app/store';
-import { fetchConversationsThunk } from '@/features/chat/conversationsSlice';
+import { fetchConversationsThunk, togglePin } from '@/features/chat/conversationsSlice';
 
 export default function ChatListScreen() {
   const [query, setQuery] = React.useState('');
@@ -44,6 +46,7 @@ export default function ChatListScreen() {
       lastMessageTime: c.lastTimestamp ? new Date(c.lastTimestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '',
       unreadCount: 0,
       avatarUrl: c.avatarUrl,
+      pinned: c.pinned,
     }));
     if (!nq) return source;
     return source.filter((c) =>
@@ -64,6 +67,12 @@ export default function ChatListScreen() {
     dispatch(fetchConversationsThunk({ reset: true }));
   }, [dispatch]);
 
+  React.useEffect(() => {
+    if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+  }, []);
+
   // Build regex to highlight special characters as typed (escape handled by regex constructor with 'g' & 'i')
   const highlightQuery = React.useMemo(() => stripVN(query.trim().toLowerCase()), [query]);
 
@@ -75,28 +84,30 @@ export default function ChatListScreen() {
             height: 44,
             borderRadius: 22,
             backgroundColor: '#F3F6FB',
-            flexDirection: 'row',
-            alignItems: 'center',
             paddingHorizontal: 12,
+            justifyContent: 'center',
             shadowColor: '#000',
             shadowOpacity: 0.05,
             shadowOffset: { width: 0, height: 2 },
             shadowRadius: 4,
           }}
         >
-          <Searchbar
+          <TextInput
+            mode="flat"
             placeholder="Tìm kiếm"
             value={query}
             onChangeText={setQuery}
-            style={{ flex: 1, backgroundColor: 'transparent', elevation: 0 }}
-            inputStyle={{ fontSize: 14 }}
-            icon={() => <Text style={{ color: '#9CA3AF'}}>🔎</Text>}
+            style={{ backgroundColor: 'transparent' }}
+            underlineColor="transparent"
+            activeUnderlineColor="transparent"
+            contentStyle={{ height: 40 }}
+            right={<TextInput.Icon icon="magnify" color="#9CA3AF" />}
           />
         </View>
       </View>
       <FlatList
         data={filtered}
-        keyExtractor={(item, index) => `${item.id}-${index}`}
+        keyExtractor={(item, index) => `${item.id}-${index}-${item.pinned ? 'p' : 'n'}`}
         renderItem={({ item }) => (
           <ChatListItem
             contactName={item.contactName}
@@ -104,7 +115,9 @@ export default function ChatListScreen() {
             lastMessageTime={item.lastMessageTime}
             unreadCount={item.unreadCount}
             avatarUrl={item.avatarUrl}
+            pinned={item.pinned}
             highlightQuery={highlightQuery}
+            onPin={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); dispatch(togglePin(item.id)); }}
             onPress={() => navigation.navigate('ChatDetail', { chatId: item.id, contactName: item.contactName })}
           />
         )}
