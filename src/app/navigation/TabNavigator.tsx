@@ -5,6 +5,8 @@ import PersonalScreen from '@/screens/PersonalScreen';
 import CallsScreen from '@/screens/CallsScreen';
 import ManageScreen from '@/screens/ManageScreen';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import ChatIcon from '@/components/icons/ChatIcon';
+import CallIcon from '@/components/icons/CallIcon';
 
 export type TabParamList = {
   Chat: undefined;
@@ -29,7 +31,7 @@ export default function TabNavigator() {
         component={ChatListScreen}
         options={{
           tabBarIcon: ({ size, color }) => (
-            <MaterialCommunityIcons name="chat-processing-outline" size={size} color={color} />
+            <ChatIcon size={size} color={color as string} />
           ),
           title: 'Tin nhắn',
           tabBarLabel: 'Chat',
@@ -40,7 +42,7 @@ export default function TabNavigator() {
         component={CallsScreen}
         options={{
           tabBarIcon: ({ size, color }) => (
-            <MaterialCommunityIcons name="phone-outline" size={size} color={color} />
+            <CallIcon size={size} color={color as string} />
           ),
           tabBarLabel: 'Cuộc gọi',
           title: 'Cuộc gọi',
